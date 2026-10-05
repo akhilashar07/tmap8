@@ -19,7 +19,6 @@ temperature_initial = '${units 773 K}' # 500C
 endtime = '1e5'
 dt_max = '2e3'
 dt_start_charging = '${units 1e-5 s}'
-bound_value_min = '${units -1e-20 at/nm^3}'
 
 # Geometry and mesh
 length = '${units 10 mum -> nm}' # BCY20
@@ -104,35 +103,7 @@ target_flux = 1e20
   []
 []
 
-[Bounds]
-  [concentration_dry_lower_bound]
-    type = ConstantBounds
-    variable = bounds_dummy
-    bounded_variable = OT_concentration_dry
-    bound_type = lower
-    bound_value = ${bound_value_min}
-  []
-  [concentration_dry_V_O_lower_bound]
-    type = ConstantBounds
-    variable = bounds_dummy
-    bounded_variable = Oxygen_vacancy_concentration_dry
-    bound_type = lower
-    bound_value = ${bound_value_min}
-  []
-  [concentration_dry_V_O_upper_bound]
-    type = ConstantBounds
-    variable = bounds_dummy
-    bounded_variable = Oxygen_vacancy_concentration_dry
-    bound_type = upper
-    bound_value = ${fparse 3 * N}
-  []
-[]
-
 [AuxVariables]
-  [bounds_dummy]
-    order = FIRST
-    family = LAGRANGE
-  []
   [temperature]
     initial_condition = ${temperature_initial}
   []
@@ -673,9 +644,10 @@ target_flux = 1e20
   scheme = implicit-euler
   solve_type = NEWTON
   petsc_options_iname = '-pc_type -snes_type'
-  petsc_options_value = 'lu vinewtonrsls'
+  #petsc_options_value = 'lu vinewtonrsls'
+  petsc_options_value = 'lu newtonls'
   nl_rel_tol = 5e-6
-  nl_abs_tol = 5e-7
+  nl_abs_tol = 1e-12
   end_time = ${endtime}
   automatic_scaling = true
   compute_scaling_once = true
