@@ -33,7 +33,6 @@ N = '${units ${fparse density_BCY20 / molar_mass_BCY20 * N_a} at/m^3 -> at/nm^3}
 OT_concentration_initial = 1e-5
 hydration_limit_S = 0.2
 oxygen_vacancy_concentration_initial = '${units ${fparse hydration_limit_S / 2 * N} at/nm^3}'
-oxygen_concentration_initial = '${units ${fparse 3 * N - oxygen_vacancy_concentration_initial - OT_concentration_initial} at/nm^3}'
 
 ##### Dry Pressure conditions
 pressure_atm = '${units 101315 Pa}'
@@ -44,29 +43,17 @@ pressure_T2O_constant = '${units ${fparse 0.03 * pressure_atm} Pa}' # 80% H2 in 
 # chemical_reaction - optimized parameters used for val-2l no-Joule validation
 delta_H_T2O = '${units -1.54415211e+05 J/mol}'
 delta_S_T2O = '${units -1.67187585e+02 J/mol/K}'
-delta_H_T2 = '${units -5.46037663e+04 J/mol}'
-delta_S_T2 = '${units -3.36929406e+01 J/mol/K}'
 T2O_reaction_forward_mol_exponent = -1.19792592e+01
 ramp_time = 1
 T2O_reaction_forward_mol = '${units ${fparse 8.0 * 10 ^ T2O_reaction_forward_mol_exponent} m^4/mol/s}'
 T2O_reaction_forward_value = '${units ${fparse T2O_reaction_forward_mol / N_a} m^4/at/s -> nm^4/at/s}'
 T2O_reaction_forward_energy = '${units -7.31595474e+03 J/mol}'
-T2_reaction_forward_mol_exponent = -4.05998297e+00
-T2_reaction_forward_mol = '${units ${fparse 8.0 * 10 ^ T2_reaction_forward_mol_exponent} m^4/mol/s}'
-T2_reaction_forward_value = '${units ${fparse T2_reaction_forward_mol / N_a} m^4/at/s -> nm^4/at/s}'
-T2_reaction_forward_energy = '${units 5.13385478e+03 J/mol}'
 diffusivity_OT_prefactor_exponent = -1.26000119e+01
 diffusivity_OT_prefactor = '${units ${fparse 2.03 * 10 ^ diffusivity_OT_prefactor_exponent} m^2/s -> nm^2/s}'
 diffusivity_OT_energy = '${units 8.65880079e+03 J/mol}'
 diffusivity_V_O_prefactor_exponent = -5.33084375e+00
 diffusivity_V_O_prefactor = '${units ${fparse 1.1 * 10 ^ diffusivity_V_O_prefactor_exponent} m^2/s -> nm^2/s}'
 diffusivity_V_O_energy = '${units 5.87658926e+04 J/mol}'
-diffusivity_e_prefactor = '${units 2.06292148e-02 m^2/s -> nm^2/s}' # data from Yang 2026
-diffusivity_e_energy = '${units 9.53470966e+04 J/mol}'
-# ELECTRON
-electron_concentration_initial_expo = 4.94096686e-01
-electron_concentration_initial_energy = '${units 5.90846106e+04 J/mol}'
-electron_concentration_initial = '${units ${fparse 10 ^ electron_concentration_initial_expo * N} at/nm^3}'
 
 # voltage
 V_current = 2.0 # CONSTANT_VOLTAGE - no ${units} wrapper so CLI override works
@@ -78,7 +65,6 @@ beta_a = 0.5
 p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption term
 
 # target flux for error computation (overridden by parent via cli_args)
-target_flux = 1e20
 
 [Mesh]
   [cmg]
@@ -112,11 +98,6 @@ target_flux = 1e20
   []
   [pressure_T2O_dry]
   []
-  [Oxygen_concentration_dry]
-    initial_condition = ${oxygen_concentration_initial}
-  []
-  [electron_concentration_dry]
-  []
 []
 
 
@@ -138,21 +119,7 @@ target_flux = 1e20
     variable = pressure_T2O_dry
     function = Pressure_T2O_dry_function
   []
-  [Oxygen_concentration_dry_Aux] # at/nm^3
-    type = ParsedAux
-    variable = Oxygen_concentration_dry
-    coupled_variables = 'Oxygen_vacancy_concentration_dry'
-    expression = '3 * ${N} - Oxygen_vacancy_concentration_dry'
-  []
 
-  # ELECTRON
-  [electron_concentration_dry_Aux]
-    type = ParsedAux
-    variable = electron_concentration_dry
-    coupled_variables = 'temperature'
-    expression = '${electron_concentration_initial} * 0.5 * exp(-${electron_concentration_initial_energy} / ${R} / temperature)'
-    execute_on = 'INITIAL TIMESTEP_END'
-  []
 
 []
 
@@ -301,18 +268,6 @@ target_flux = 1e20
     coupled_variables = 'temperature'
     expression = '${diffusivity_V_O_prefactor} * exp(-${diffusivity_V_O_energy} / ${R} / temperature)'
   []
-  [diffusivity_e]
-    type = ADParsedMaterial
-    property_name = 'diffusivity_e'
-    coupled_variables = 'temperature'
-    expression = '${diffusivity_e_prefactor} * exp(-${diffusivity_e_energy} / ${R} / temperature)'
-  []
-  [converter_to_nonAD]
-    type = MaterialADConverter
-    ad_props_in = 'diffusivity_OT diffusivity_V_O diffusivity_e conductivity_OH conductivity_e'
-    reg_props_out = 'diffusivity_OT_nonAD diffusivity_V_O_nonAD diffusivity_e_nonAD conductivity_OH_nonAD conductivity_e_nonAD'
-    outputs = 'none'
-  []
   [conductivity_OH]
     type = ADParsedMaterial
     property_name = 'conductivity_OH'
@@ -326,31 +281,6 @@ target_flux = 1e20
     coupled_variables = 'Oxygen_vacancy_concentration_dry temperature'
     material_property_names = 'diffusivity_V_O'
     expression = '2 * diffusivity_V_O * ${F} * Oxygen_vacancy_concentration_dry / ${R} / temperature'
-  []
-  [conductivity_e]
-    type = ADParsedMaterial
-    property_name = 'conductivity_e'
-    coupled_variables = 'electron_concentration_dry temperature'
-    material_property_names = 'diffusivity_e'
-    expression = '- diffusivity_e * ${F} * electron_concentration_dry / ${R} / temperature'
-  []
-  [reaction_equilibrium_constant_T2]
-    type = ADParsedMaterial
-    property_name = 'T2_K_eq'
-    coupled_variables = 'temperature'
-    expression = 'exp( ( ${delta_H_T2} - temperature * ${delta_S_T2}) / ${R} / temperature )'
-  []
-  [reaction_forward_T2]
-    type = ADParsedMaterial
-    property_name = 'T2_K_forward'
-    coupled_variables = 'temperature'
-    expression = '${T2_reaction_forward_value} * exp(-${T2_reaction_forward_energy} / ${R} / temperature)'
-  []
-  [reaction_reverse_T2]
-    type = ADParsedMaterial
-    property_name = 'T2_K_reverse'
-    material_property_names = 'T2_K_forward T2_K_eq'
-    expression = 'T2_K_forward / T2_K_eq'
   []
 
   [reaction_equilibrium_constant_T2O]
@@ -500,18 +430,6 @@ target_flux = 1e20
   []
 
   # necessary parameters
-  [T2_K_eq_average]
-    type = ADElementAverageMaterialProperty
-    mat_prop = T2_K_eq
-  []
-  [T2_K_forward_average]
-    type = ADElementAverageMaterialProperty
-    mat_prop = T2_K_forward
-  []
-  [T2_K_reverse_average]
-    type = ADElementAverageMaterialProperty
-    mat_prop = T2_K_reverse
-  []
   [T2O_K_eq_average]
     type = ADElementAverageMaterialProperty
     mat_prop = T2O_K_eq
@@ -548,18 +466,6 @@ target_flux = 1e20
     type = ElementAverageValue
     variable = pressure_T2_dry
     execute_on = 'INITIAL TIMESTEP_END'
-  []
-  [log_error_sq]
-    type = ParsedPostprocessor
-    pp_names = 'recombination_flux_OT_dry_right'
-    expression = '(log(abs(recombination_flux_OT_dry_right * 1e18)) - log(${target_flux}))^2'
-    execute_on = 'TIMESTEP_END'
-  []
-  [relative_error_sq]
-    type = ParsedPostprocessor
-    pp_names = 'recombination_flux_OT_dry_right'
-    expression = '(abs(recombination_flux_OT_dry_right * 1e18) - ${target_flux})^2'
-    execute_on = 'TIMESTEP_END'
   []
 
   [rate_CT_left]
