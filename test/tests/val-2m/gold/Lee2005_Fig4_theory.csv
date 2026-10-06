@@ -1,0 +1,7 @@
+# Source: Lee, Dorris, Balachandran, Solid State Ionics 176 (2005) 1479, digitized by A. Ashar
+# Fig. 4 'theoretical' (Faraday) line. Slope = 7.6030 cm3/min/cm2 per A/cm2 -> Vm = 24453 cm3/mol (~25 C, 1 atm)
+j_A_cm2,H2_rate_cm3STP_min_cm2
+0.0,0.0
+0.1435750179468772,1.0978956999085092
+0.7806891600861452,5.946935041171088
+1.9741564967695624,15.004574565416284
