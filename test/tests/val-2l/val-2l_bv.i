@@ -41,13 +41,13 @@ pressure_T2_high = '${units ${fparse 0.8 * pressure_atm} Pa}' # 80% H2 in N2 and
 pressure_T2O_constant = '${units ${fparse 0.03 * pressure_atm} Pa}' # 80% H2 in N2 and 3% H2O
 
 # chemical_reaction - optimized parameters used for val-2l no-Joule validation
-delta_H_T2O = '${units -1.54415211e+05 J/mol}'
-delta_S_T2O = '${units -1.67187585e+02 J/mol/K}'
-T2O_reaction_forward_mol_exponent = -1.19792592e+01
+dH_hyd = '${units -1.54415211e+05 J/mol}'
+dS_hyd = '${units -1.67187585e+02 J/mol/K}'
+kf_hyd_mol_exponent = -1.19792592e+01
 ramp_time = 1
-T2O_reaction_forward_mol = '${units ${fparse 8.0 * 10 ^ T2O_reaction_forward_mol_exponent} m^4/mol/s}'
-T2O_reaction_forward_value = '${units ${fparse T2O_reaction_forward_mol / N_a} m^4/at/s -> nm^4/at/s}'
-T2O_reaction_forward_energy = '${units -7.31595474e+03 J/mol}'
+kf_hyd_mol = '${units ${fparse 8.0 * 10 ^ kf_hyd_mol_exponent} m^4/mol/s}'
+kf_hyd_value = '${units ${fparse kf_hyd_mol / N_a} m^4/at/s -> nm^4/at/s}'
+kf_hyd_energy = '${units -7.31595474e+03 J/mol}'
 diffusivity_OT_prefactor_exponent = -1.26000119e+01
 diffusivity_OT_prefactor = '${units ${fparse 2.03 * 10 ^ diffusivity_OT_prefactor_exponent} m^2/s -> nm^2/s}'
 diffusivity_OT_energy = '${units 8.65880079e+03 J/mol}'
@@ -78,10 +78,10 @@ p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption 
 
 [Variables]
   #### Dry variable
-  [OT_concentration_dry] # (atoms/nm^3)
+  [c_OT] # (atoms/nm^3)
     initial_condition = ${OT_concentration_initial}
   []
-  [Oxygen_vacancy_concentration_dry]
+  [c_V]
     initial_condition = ${oxygen_vacancy_concentration_initial}
   []
   [phi_el]
@@ -131,112 +131,112 @@ p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption 
 
 [Kernels]
   #### Dry kernels
-  [time_OT_dry]
+  [time_OT]
     type = ADTimeDerivative
-    variable = OT_concentration_dry
+    variable = c_OT
     extra_vector_tags = ref
   []
-  [diffusion_OT_dry]
+  [diffusion_OT]
     type = ADMatDiffusion
-    variable = OT_concentration_dry
-    diffusivity = diffusivity_OT
+    variable = c_OT
+    diffusivity = D_OT
     extra_vector_tags = ref
   []
-  [time_V_O_dry]
+  [time_V]
     type = ADTimeDerivative
-    variable = Oxygen_vacancy_concentration_dry
+    variable = c_V
     extra_vector_tags = ref
   []
-  [diffusion_V_O_dry]
+  [diffusion_V]
     type = ADMatDiffusion
-    variable = Oxygen_vacancy_concentration_dry
-    diffusivity = diffusivity_V_O
+    variable = c_V
+    diffusivity = D_V
     extra_vector_tags = ref
   []
   # voltage for OH
-  [diffusion_phi_PCC_OH]
+  [migration_OT]
     type = ADMatDiffusion
-    variable = OT_concentration_dry
+    variable = c_OT
     v = phi_el
-    diffusivity = conductivity_OH
+    diffusivity = mig_OT
     extra_vector_tags = ref
   []
   # voltage for V_O
-  [diffusion_phi_PCC_V_O]
+  [migration_V]
     type = ADMatDiffusion
-    variable = Oxygen_vacancy_concentration_dry
+    variable = c_V
     v = phi_el
-    diffusivity = conductivity_V_O
+    diffusivity = mig_V
     extra_vector_tags = ref
   []
     # charge continuity for phi_el
-  [phi_migration]
+  [charge_migration]
     type = ADMatDiffusion
     variable = phi_el
-    diffusivity = conductivity_total
+    diffusivity = mig_total
     extra_vector_tags = ref
   []
-  [phi_diffusion_OH]
+  [charge_diffusion_OT]
     type = ADMatDiffusion
     variable = phi_el
-    v = OT_concentration_dry
-    diffusivity = diffusivity_OT
+    v = c_OT
+    diffusivity = D_OT
     extra_vector_tags = ref
   []
-  [phi_diffusion_V_O]
+  [charge_diffusion_V]
     type = ADMatDiffusion
     variable = phi_el
-    v = Oxygen_vacancy_concentration_dry
-    diffusivity = diffusivity_V_O_x2
+    v = c_V
+    diffusivity = D_V_x2
     extra_vector_tags = ref
   []
 []
 
 [BCs]
   #### Dry BCs
-  [left_OT_dry]
+  [OT_po]
     type = ADMatNeumannBC
-    variable = OT_concentration_dry
+    variable = c_OT
     boundary = left
     value = 1
-    boundary_material = flux_on_OT_dry
+    boundary_material = flux_OT_in
   []
-  [left_V_O_dry]
+  [V_po]
     type = ADMatNeumannBC
-    variable = Oxygen_vacancy_concentration_dry
+    variable = c_V
     boundary = left
     value = 1
-    boundary_material = flux_on_V_O_dry
+    boundary_material = flux_V_in
   []
-  [right_OT_dry]
+  [OT_ne]
     type = ADMatNeumannBC
-    variable = OT_concentration_dry
+    variable = c_OT
     boundary = right
     value = 1
-    boundary_material = flux_on_OT_dry
+    boundary_material = flux_OT_in
   []
-  [right_V_O_dry]
+  [V_ne]
     type = ADMatNeumannBC
-    variable = Oxygen_vacancy_concentration_dry
+    variable = c_V
     boundary = right
     value = 1
-    boundary_material = flux_on_V_O_dry
+    boundary_material = flux_V_in
   []
 
-  [left_phi]
+  [charge_po]
     type = ADMatNeumannBC
     variable = phi_el
     boundary = left
     value = 1
-    boundary_material = flux_on_phi
+    boundary_material = flux_charge_in
   []
 
-  [right_phi]
+  [charge_ne]
     type = ADMatNeumannBC
     variable = phi_el
     boundary = right
     value = 1
-    boundary_material = flux_on_phi
+    boundary_material = flux_charge_in
   []
 []
 
@@ -256,128 +256,128 @@ p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption 
 []
 
 [Materials]
-  [diffusivity_OT]
+  [D_OT]
     type = ADParsedMaterial
-    property_name = 'diffusivity_OT'
+    property_name = 'D_OT'
     coupled_variables = 'temperature'
     expression = '${diffusivity_OT_prefactor} * exp(-${diffusivity_OT_energy} / ${R} / temperature)'
   []
-  [diffusivity_V_O]
+  [D_V]
     type = ADParsedMaterial
-    property_name = 'diffusivity_V_O'
+    property_name = 'D_V'
     coupled_variables = 'temperature'
     expression = '${diffusivity_V_O_prefactor} * exp(-${diffusivity_V_O_energy} / ${R} / temperature)'
   []
-  [conductivity_OH]
+  [mig_OT]
     type = ADParsedMaterial
-    property_name = 'conductivity_OH'
-    coupled_variables = 'OT_concentration_dry temperature'
-    material_property_names = 'diffusivity_OT'
-    expression = 'diffusivity_OT * ${F} * OT_concentration_dry / ${R} / temperature'
+    property_name = 'mig_OT'
+    coupled_variables = 'c_OT temperature'
+    material_property_names = 'D_OT'
+    expression = 'D_OT * ${F} * c_OT / ${R} / temperature'
   []
-  [conductivity_V_O]
+  [mig_V]
     type = ADParsedMaterial
-    property_name = 'conductivity_V_O'
-    coupled_variables = 'Oxygen_vacancy_concentration_dry temperature'
-    material_property_names = 'diffusivity_V_O'
-    expression = '2 * diffusivity_V_O * ${F} * Oxygen_vacancy_concentration_dry / ${R} / temperature'
-  []
-
-  [reaction_equilibrium_constant_T2O]
-    type = ADParsedMaterial
-    property_name = 'T2O_K_eq'
-    coupled_variables = 'temperature'
-    expression = 'exp( ( ${delta_H_T2O} - temperature * ${delta_S_T2O}) / ${R} / temperature )'
-  []
-  [reaction_forward_T2O]
-    type = ADParsedMaterial
-    property_name = 'T2O_K_forward'
-    coupled_variables = 'temperature'
-    expression = '${T2O_reaction_forward_value} * exp(-${T2O_reaction_forward_energy} / ${R} / temperature)'
-  []
-  [reaction_reverse_T2O]
-    type = ADParsedMaterial
-    property_name = 'T2O_K_reverse'
-    material_property_names = 'T2O_K_forward T2O_K_eq'
-    expression = 'T2O_K_forward / T2O_K_eq'
+    property_name = 'mig_V'
+    coupled_variables = 'c_V temperature'
+    material_property_names = 'D_V'
+    expression = '2 * D_V * ${F} * c_V / ${R} / temperature'
   []
 
-  [flux_base_on_T2O_dry] # T2O + V_O + O -> 2 OT
+  [K_hyd]
+    type = ADParsedMaterial
+    property_name = 'K_hyd'
+    coupled_variables = 'temperature'
+    expression = 'exp( ( ${dH_hyd} - temperature * ${dS_hyd}) / ${R} / temperature )'
+  []
+  [kf_hyd]
+    type = ADParsedMaterial
+    property_name = 'kf_hyd'
+    coupled_variables = 'temperature'
+    expression = '${kf_hyd_value} * exp(-${kf_hyd_energy} / ${R} / temperature)'
+  []
+  [kb_hyd]
+    type = ADParsedMaterial
+    property_name = 'kb_hyd'
+    material_property_names = 'kf_hyd K_hyd'
+    expression = 'kf_hyd / K_hyd'
+  []
+
+  [rate_hydration] # T2O + V_O + O -> 2 OT
     type = ADDerivativeParsedMaterial
-    coupled_variables = 'OT_concentration_dry pressure_T2O_dry Oxygen_vacancy_concentration_dry'
-    property_name = 'flux_base_on_T2O_dry'
-    material_property_names = 'T2O_K_forward T2O_K_reverse'
-    expression = '(T2O_K_forward * pressure_T2O_dry * (3 * ${N} - Oxygen_vacancy_concentration_dry) * Oxygen_vacancy_concentration_dry - T2O_K_reverse * OT_concentration_dry^2)'
+    coupled_variables = 'c_OT pressure_T2O_dry c_V'
+    property_name = 'rate_hydration'
+    material_property_names = 'kf_hyd kb_hyd'
+    expression = '(kf_hyd * pressure_T2O_dry * (3 * ${N} - c_V) * c_V - kb_hyd * c_OT^2)'
   []
 
-  [flux_on_OT_dry] # protons into film: charge transfer + hydration
+  [flux_OT_in] # protons into film: charge transfer + hydration
     type = ADParsedMaterial
     boundary = 'left right'
-    property_name = 'flux_on_OT_dry'
-    material_property_names = 'rate_CT flux_base_on_T2O_dry'
-    expression = 'rate_CT + 2 * flux_base_on_T2O_dry'
+    property_name = 'flux_OT_in'
+    material_property_names = 'rate_CT rate_hydration'
+    expression = 'rate_CT + 2 * rate_hydration'
   []
-  [flux_on_T2_dry] # H2 released, positive = out of film
+  [flux_H2_out] # H2 released, positive = out of film
     type = ADParsedMaterial
     boundary = 'left right'
-    property_name = 'flux_on_T2_dry'
+    property_name = 'flux_H2_out'
     material_property_names = 'rate_CT'
     expression = '-0.5 * rate_CT'
   []
-  [flux_on_phi] # current into film / F
+  [flux_charge_in] # current into film / F
     type = ADParsedMaterial
     boundary = 'left right'
-    property_name = 'flux_on_phi'
+    property_name = 'flux_charge_in'
     material_property_names = 'rate_CT'
     expression = 'rate_CT'
   []
-  [flux_on_V_O_dry] # V_O
+  [flux_V_in] # V_O
     type = ADDerivativeParsedMaterial
-    property_name = 'flux_on_V_O_dry'
-    material_property_names = 'flux_base_on_T2O_dry'
-    expression = '-1 * flux_base_on_T2O_dry'
+    property_name = 'flux_V_in'
+    material_property_names = 'rate_hydration'
+    expression = '-1 * rate_hydration'
   []
-  [flux_on_T2O_dry] # T2O
+  [flux_H2O_out] # T2O
     type = ADDerivativeParsedMaterial
-    property_name = 'flux_on_T2O_dry'
-    material_property_names = 'flux_base_on_T2O_dry'
-    expression = '-1 * flux_base_on_T2O_dry'
+    property_name = 'flux_H2O_out'
+    material_property_names = 'rate_hydration'
+    expression = '-1 * rate_hydration'
   []
 
-  [conductivity_total]
+  [mig_total]
     type = ADParsedMaterial
-    property_name = 'conductivity_total'
-    material_property_names = 'conductivity_OH conductivity_V_O'
-    expression = 'conductivity_OH + 2 * conductivity_V_O'
+    property_name = 'mig_total'
+    material_property_names = 'mig_OT mig_V'
+    expression = 'mig_OT + 2 * mig_V'
   []
 
-  [diffusivity_V_O_x2]
+  [D_V_x2]
     type = ADParsedMaterial
-    property_name = 'diffusivity_V_O_x2'
-    material_property_names = 'diffusivity_V_O'
-    expression = '2 * diffusivity_V_O'
+    property_name = 'D_V_x2'
+    material_property_names = 'D_V'
+    expression = '2 * D_V'
   []
 
-  [rate_CT_anode] # H2 + 2 O_O -> 2 OH_O + 2 e'(ed), per proton, at/nm^2/s ; Phi_ed = V_app
+  [rate_CT_po] # H2 + 2 O_O -> 2 OH_O + 2 e'(ed), per proton, at/nm^2/s ; Phi_ed = V_app
     type = ADParsedMaterial
     boundary = left
     property_name = 'rate_CT'
-    coupled_variables = 'OT_concentration_dry Oxygen_vacancy_concentration_dry phi_el pressure_T2_dry temperature'
+    coupled_variables = 'c_OT c_V phi_el pressure_T2_dry temperature'
     expression = '${k_CT} * exp(-${E_CT} / ${R} / temperature) / (1 + sqrt(pressure_T2_dry / ${p_star}))
-                  * ( sqrt(pressure_T2_dry) * (3 * ${N} - Oxygen_vacancy_concentration_dry)
+                  * ( sqrt(pressure_T2_dry) * (3 * ${N} - c_V)
                       * exp(${beta_a} * ${F} / ${R} / temperature * (${V_current} - phi_el))
-                    - OT_concentration_dry
+                    - c_OT
                       * exp(-(1 - ${beta_a}) * ${F} / ${R} / temperature * (${V_current} - phi_el)) )'
   []
-  [rate_CT_cathode] # same reaction ; Phi_ed = 0
+  [rate_CT_ne] # same reaction ; Phi_ed = 0
     type = ADParsedMaterial
     boundary = right
     property_name = 'rate_CT'
-    coupled_variables = 'OT_concentration_dry Oxygen_vacancy_concentration_dry phi_el pressure_T2_dry temperature'
+    coupled_variables = 'c_OT c_V phi_el pressure_T2_dry temperature'
     expression = '${k_CT} * exp(-${E_CT} / ${R} / temperature) / (1 + sqrt(pressure_T2_dry / ${p_star}))
-                  * ( sqrt(pressure_T2_dry) * (3 * ${N} - Oxygen_vacancy_concentration_dry)
+                  * ( sqrt(pressure_T2_dry) * (3 * ${N} - c_V)
                       * exp(${beta_a} * ${F} / ${R} / temperature * (0 - phi_el))
-                    - OT_concentration_dry
+                    - c_OT
                       * exp(-(1 - ${beta_a}) * ${F} / ${R} / temperature * (0 - phi_el)) )'
   []
 
@@ -386,70 +386,70 @@ p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption 
 
 [Postprocessors]
   #### Postprocessors for flux under dry
-  [recombination_flux_T2_dry_left]
+  [H2_flux_po]
     type = ADSideAverageMaterialProperty
     boundary = left
-    property = flux_on_T2_dry
+    property = flux_H2_out
     execute_on = 'INITIAL TIMESTEP_END'
     outputs = 'console csv'
   []
-  [recombination_flux_T2O_dry_left]
+  [H2O_flux_po]
     type = ADSideAverageMaterialProperty
     boundary = left
-    property = flux_on_T2O_dry
+    property = flux_H2O_out
     execute_on = 'INITIAL TIMESTEP_END'
     outputs = 'console csv'
   []
-  [recombination_flux_OT_dry_left]
+  [OT_flux_po]
     type = ADSideAverageMaterialProperty
     boundary = left
-    property = flux_on_OT_dry
+    property = flux_OT_in
     execute_on = 'INITIAL TIMESTEP_END'
     outputs = 'console csv'
   []
-  [recombination_flux_OT_dry_right]
+  [OT_flux_ne]
     type = ADSideAverageMaterialProperty
     boundary = right
-    property = flux_on_OT_dry
+    property = flux_OT_in
     execute_on = 'INITIAL TIMESTEP_END'
     outputs = 'console csv'
   []
-  [recombination_flux_T2O_dry_right]
+  [H2O_flux_ne]
     type = ADSideAverageMaterialProperty
     boundary = right
-    property = flux_on_T2O_dry
+    property = flux_H2O_out
     execute_on = 'INITIAL TIMESTEP_END'
     outputs = 'console csv'
   []
-  [recombination_flux_T2_dry_right]
+  [H2_flux_ne]
     type = ADSideAverageMaterialProperty
     boundary = right
-    property = flux_on_T2_dry
+    property = flux_H2_out
     execute_on = 'INITIAL TIMESTEP_END'
     outputs = 'console csv'
   []
 
   # necessary parameters
-  [T2O_K_eq_average]
+  [K_hyd_average]
     type = ADElementAverageMaterialProperty
-    mat_prop = T2O_K_eq
+    mat_prop = K_hyd
   []
-  [T2O_K_forward_average]
+  [kf_hyd_average]
     type = ADElementAverageMaterialProperty
-    mat_prop = T2O_K_forward
+    mat_prop = kf_hyd
   []
-  [T2O_K_reverse_average]
+  [kb_hyd_average]
     type = ADElementAverageMaterialProperty
-    mat_prop = T2O_K_reverse
+    mat_prop = kb_hyd
   []
-  [diffusivity_OT_average]
+  [D_OT_average]
     type = ADElementAverageMaterialProperty
-    mat_prop = diffusivity_OT
+    mat_prop = D_OT
     execute_on = 'INITIAL TIMESTEP_END'
   []
-  [diffusivity_V_O_average]
+  [D_V_average]
     type = ADElementAverageMaterialProperty
-    mat_prop = diffusivity_V_O
+    mat_prop = D_V
     execute_on = 'INITIAL TIMESTEP_END'
   []
   [temperature_average]
@@ -468,74 +468,74 @@ p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption 
     execute_on = 'INITIAL TIMESTEP_END'
   []
 
-  [rate_CT_left]
+  [r_CT_po]
     type = ADSideAverageMaterialProperty
     boundary = left
     property = rate_CT
     execute_on = 'INITIAL TIMESTEP_END'
   []
-  [rate_CT_right]
+  [r_CT_ne]
     type = ADSideAverageMaterialProperty
     boundary = right
     property = rate_CT
     execute_on = 'INITIAL TIMESTEP_END'
   []
-  [current_density_anode_A_cm2]   # 1 at/nm^2/s = 1.602e-5 A/cm^2
+  [current_density_po_A_cm2]   # 1 at/nm^2/s = 1.602e-5 A/cm^2
     type = ParsedPostprocessor
-    pp_names = 'rate_CT_left'
-    expression = 'rate_CT_left * 1.602176634e-5'
+    pp_names = 'r_CT_po'
+    expression = 'r_CT_po * 1.602176634e-5'
     execute_on = 'INITIAL TIMESTEP_END'
   []
-  [current_density_cathode_A_cm2]
+  [current_density_ne_A_cm2]
     type = ParsedPostprocessor
-    pp_names = 'rate_CT_right'
-    expression = '-rate_CT_right * 1.602176634e-5'
+    pp_names = 'r_CT_ne'
+    expression = '-r_CT_ne * 1.602176634e-5'
     execute_on = 'INITIAL TIMESTEP_END'
   []
   [charge_balance_rel_error]      # should go to ~0 at steady state
     type = ParsedPostprocessor
-    pp_names = 'rate_CT_left rate_CT_right'
-    expression = 'abs(rate_CT_left + rate_CT_right) / (abs(rate_CT_left) + 1e-30)'
+    pp_names = 'r_CT_po r_CT_ne'
+    expression = 'abs(r_CT_po + r_CT_ne) / (abs(r_CT_po) + 1e-30)'
     execute_on = 'INITIAL TIMESTEP_END'
   []
 
-  [OT_left]
+  [c_OT_po]
     type = PointValue
-    variable = OT_concentration_dry
+    variable = c_OT
     point = '0 0 0'
   []
-  [OT_right]
+  [c_OT_ne]
     type = PointValue
-    variable = OT_concentration_dry
+    variable = c_OT
     point = '${length} 0 0'
   []
-  [V_left]
+  [c_V_po]
     type = PointValue
-    variable = Oxygen_vacancy_concentration_dry
+    variable = c_V
     point = '0 0 0'
   []
-  [V_right]
+  [c_V_ne]
     type = PointValue
-    variable = Oxygen_vacancy_concentration_dry
+    variable = c_V
     point = '${length} 0 0'
   []
-  [phi_left]
+  [phi_el_po]
     type = PointValue
     variable = phi_el
     point = '0 0 0'
   []
-  [phi_right]
+  [phi_el_ne]
     type = PointValue
     variable = phi_el
     point = '${length} 0 0'
   []
-  [OT_inventory]
+  [c_OT_inventory]
     type = ElementIntegralVariablePostprocessor
-    variable = OT_concentration_dry
+    variable = c_OT
   []
-  [V_inventory]
+  [c_V_inventory]
     type = ElementIntegralVariablePostprocessor
-    variable = Oxygen_vacancy_concentration_dry
+    variable = c_V
   []
 []
 
