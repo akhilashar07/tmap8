@@ -51,20 +51,20 @@ A_cell = 1.1            # cm^2, Lee cathode area (1.1 at 500/600 C, 0.97 at 700 
 sweep_flow = 150        # sccm, negatrode wet N2 sweep
 p_H2_bg = 1e-6          # background H2 at negatrode (permeation/leak), estimate; Lee: < ~7e-6 at 500-700 C
 
-# chemical_reaction - optimized parameters used for val-2l no-Joule validation
-dH_hyd = '${units -1.54415211e+05 J/mol}'
-dS_hyd = '${units -1.67187585e+02 J/mol/K}'
-kf_hyd_mol_exponent = -1.19792592e+01
+# Hydration and transport parameters: literature values (Lin's parameters_initial.params, Kreuer-based)
+dH_hyd = '${units -1.622e+05 J/mol}' # literature start (Lin, parameters_initial.params)
+dS_hyd = '${units -1.667e+02 J/mol/K}' # literature start (Lin, parameters_initial.params)
+kf_hyd_mol_exponent = -7.0 # literature start (Lin, parameters_initial.params)
 ramp_time = 1
 kf_hyd_mol = '${units ${fparse 8.0 * 10 ^ kf_hyd_mol_exponent} m^4/mol/s}'
 kf_hyd_value = '${units ${fparse kf_hyd_mol / N_a} m^4/at/s -> nm^4/at/s}'
-kf_hyd_energy = '${units -7.31595474e+03 J/mol}'
-diffusivity_OT_prefactor_exponent = -1.26000119e+01
+kf_hyd_energy = '${units 1.0e+04 J/mol}' # literature start (Lin, parameters_initial.params)
+diffusivity_OT_prefactor_exponent = -6.0 # literature start (Lin, parameters_initial.params)
 diffusivity_OT_prefactor = '${units ${fparse 2.03 * 10 ^ diffusivity_OT_prefactor_exponent} m^2/s -> nm^2/s}'
-diffusivity_OT_energy = '${units 8.65880079e+03 J/mol}'
-diffusivity_V_O_prefactor_exponent = -5.33084375e+00
+diffusivity_OT_energy = '${units 6.848023e+04 J/mol}' # literature start (Lin, parameters_initial.params)
+diffusivity_V_O_prefactor_exponent = -6.0 # literature start (Lin, parameters_initial.params)
 diffusivity_V_O_prefactor = '${units ${fparse 1.1 * 10 ^ diffusivity_V_O_prefactor_exponent} m^2/s -> nm^2/s}'
-diffusivity_V_O_energy = '${units 5.87658926e+04 J/mol}'
+diffusivity_V_O_energy = '${units 5.208355e+04 J/mol}' # literature start (Lin, parameters_initial.params)
 
 # voltage
 V_current = 2.0 # CONSTANT_VOLTAGE - no ${units} wrapper so CLI override works
