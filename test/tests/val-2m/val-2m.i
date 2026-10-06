@@ -71,7 +71,8 @@ V_current = 2.0 # CONSTANT_VOLTAGE - no ${units} wrapper so CLI override works
 V_ramp_time = 10        # s, positrode potential ramps from 0 to V_current at start-up
 
 # charge transfer (BV, multiplied-out form) - Placeholder values, to be calibrated
-k_CT = 1e4          # nm/s
+k_CT_po = 1e4       # nm/s, positrode (Ni-BCY) charge-transfer prefactor
+k_CT_ne = 1e4       # nm/s, negatrode (Pt) charge-transfer prefactor
 E_CT = 0            # J/mol
 beta_a = 0.5
 p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption term
@@ -285,7 +286,7 @@ p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption 
     type = ADParsedMaterial
     property_name = 'K_hyd'
     coupled_variables = 'temperature'
-    expression = 'exp( ( ${dH_hyd} - temperature * ${dS_hyd}) / ${R} / temperature )'
+    expression = 'exp( -( ${dH_hyd} - temperature * ${dS_hyd}) / ${R} / temperature )' # K = exp(-dG/RT)
   []
   [kf_hyd]
     type = ADParsedMaterial
@@ -359,7 +360,7 @@ p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption 
     property_name = 'rate_CT'
     coupled_variables = 'c_OT c_V phi_el temperature'
     postprocessor_names = 'p_H2_po V_po'
-    expression = '${k_CT} * exp(-${E_CT} / ${R} / temperature) / (1 + sqrt(p_H2_po / ${p_star}))
+    expression = '${k_CT_po} * exp(-${E_CT} / ${R} / temperature) / (1 + sqrt(p_H2_po / ${p_star}))
                   * ( sqrt(p_H2_po) * (3 * ${N} - c_V)
                       * exp(${beta_a} * ${F} / ${R} / temperature * (V_po - phi_el))
                     - c_OT
@@ -371,7 +372,7 @@ p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption 
     property_name = 'rate_CT'
     coupled_variables = 'c_OT c_V phi_el temperature'
     postprocessor_names = 'p_H2_ne'
-    expression = '${k_CT} * exp(-${E_CT} / ${R} / temperature) / (1 + sqrt(p_H2_ne / ${p_star}))
+    expression = '${k_CT_ne} * exp(-${E_CT} / ${R} / temperature) / (1 + sqrt(p_H2_ne / ${p_star}))
                   * ( sqrt(p_H2_ne) * (3 * ${N} - c_V)
                       * exp(${beta_a} * ${F} / ${R} / temperature * (0 - phi_el))
                     - c_OT
