@@ -46,8 +46,10 @@ oxygen_vacancy_concentration_initial = '${units ${fparse hydration_limit_S / 2 *
 # Gas compositions at each electrode (partial pressure / 1 atm)
 p_H2_po_value = 0.8     # positrode: 80% H2, 3% H2O, balance He
 p_H2O_po_value = 0.03
-p_H2_ne_value = 0       # negatrode: wet N2 sweep; replaced in step 3b
 p_H2O_ne_value = 0.03
+A_cell = 1.1            # cm^2, Lee cathode area (1.1 at 500/600 C, 0.97 at 700 C)
+sweep_flow = 150        # sccm, negatrode wet N2 sweep
+p_H2_bg = 1e-6          # background H2 at negatrode (permeation/leak), estimate; Lee: < ~7e-6 at 500-700 C
 
 # chemical_reaction - optimized parameters used for val-2l no-Joule validation
 dH_hyd = '${units -1.54415211e+05 J/mol}'
@@ -544,12 +546,6 @@ p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption 
     scale_factor = ${p_H2_po_value}
     execute_on = 'INITIAL TIMESTEP_BEGIN'
   []
-  [p_H2_ne]
-    type = FunctionValuePostprocessor
-    function = ramp
-    scale_factor = ${p_H2_ne_value}
-    execute_on = 'INITIAL TIMESTEP_BEGIN'
-  []
   [p_H2O_po]
     type = FunctionValuePostprocessor
     function = ramp
@@ -561,6 +557,12 @@ p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption 
     function = ramp
     scale_factor = ${p_H2O_ne_value}
     execute_on = 'INITIAL TIMESTEP_BEGIN'
+  []
+  [p_H2_ne] # background + produced H2 / (sweep + produced H2), well-mixed negatrode chamber
+    type = ParsedPostprocessor
+    pp_names = 'H2_flux_ne'
+    expression = '${p_H2_bg} + max(H2_flux_ne, 0) * ${A_cell} * 1e14 / ${N_a} / (${sweep_flow} / 22414 / 60 + max(H2_flux_ne, 0) * ${A_cell} * 1e14 / ${N_a})'
+    execute_on = 'INITIAL TIMESTEP_END'
   []
 []
 
