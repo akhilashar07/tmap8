@@ -68,6 +68,7 @@ diffusivity_V_O_energy = '${units 5.87658926e+04 J/mol}'
 
 # voltage
 V_current = 2.0 # CONSTANT_VOLTAGE - no ${units} wrapper so CLI override works
+V_ramp_time = 10        # s, positrode potential ramps from 0 to V_current at start-up
 
 # charge transfer (BV, multiplied-out form) - Placeholder values, to be calibrated
 k_CT = 1e4          # nm/s
@@ -246,6 +247,10 @@ p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption 
     type = ParsedFunction
     expression = 'min(t / ${ramp_time}, 1.0)'
   []
+  [ramp_V]
+    type = ParsedFunction
+    expression = 'min(t / ${V_ramp_time}, 1.0)'
+  []
 []
 
 [Materials]
@@ -353,12 +358,12 @@ p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption 
     boundary = left
     property_name = 'rate_CT'
     coupled_variables = 'c_OT c_V phi_el temperature'
-    postprocessor_names = 'p_H2_po'
+    postprocessor_names = 'p_H2_po V_po'
     expression = '${k_CT} * exp(-${E_CT} / ${R} / temperature) / (1 + sqrt(p_H2_po / ${p_star}))
                   * ( sqrt(p_H2_po) * (3 * ${N} - c_V)
-                      * exp(${beta_a} * ${F} / ${R} / temperature * (${V_current} - phi_el))
+                      * exp(${beta_a} * ${F} / ${R} / temperature * (V_po - phi_el))
                     - c_OT
-                      * exp(-(1 - ${beta_a}) * ${F} / ${R} / temperature * (${V_current} - phi_el)) )'
+                      * exp(-(1 - ${beta_a}) * ${F} / ${R} / temperature * (V_po - phi_el)) )'
   []
   [rate_CT_ne] # same reaction ; Phi_ed = 0
     type = ADParsedMaterial
@@ -563,6 +568,12 @@ p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption 
     pp_names = 'H2_flux_ne'
     expression = '${p_H2_bg} + max(H2_flux_ne, 0) * ${A_cell} * 1e14 / ${N_a} / (${sweep_flow} / 22414 / 60 + max(H2_flux_ne, 0) * ${A_cell} * 1e14 / ${N_a})'
     execute_on = 'INITIAL TIMESTEP_END'
+  []
+  [V_po] # positrode electrode potential, ramped from 0 to V_current
+    type = FunctionValuePostprocessor
+    function = ramp_V
+    scale_factor = ${V_current}
+    execute_on = 'INITIAL TIMESTEP_BEGIN'
   []
 []
 
