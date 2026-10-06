@@ -1,4 +1,4 @@
-# val-2l (BV version): H2 pumping through a dense BCY20 film (Lee et al., Solid State Ionics 176, 2005)
+# val-2m: H2 pumping through a dense BCY20 film with charge conservation and Butler-Volmer kinetics (Lee et al., Solid State Ionics 176, 2005)
 #
 # Domain: 1D dense electrolyte, x = 0 (positrode/electrolyte interface) to x = L (negatrode/electrolyte interface)
 #   positrode (x = 0, boundary 'left'):  80% H2, 3% H2O; Phi_ed = V_app; H2 + 2 O_O^x -> 2 OH_O^. + 2 e'
