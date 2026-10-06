@@ -34,11 +34,11 @@ OT_concentration_initial = 1e-5
 hydration_limit_S = 0.2
 oxygen_vacancy_concentration_initial = '${units ${fparse hydration_limit_S / 2 * N} at/nm^3}'
 
-##### Dry Pressure conditions
-pressure_atm = '${units 101315 Pa}'
-pressure_T2_low = '${units 0 Pa}'      # pure N2 and 3% H2O
-pressure_T2_high = '${units ${fparse 0.8 * pressure_atm} Pa}' # 80% H2 in N2 and 3% H2O
-pressure_T2O_constant = '${units ${fparse 0.03 * pressure_atm} Pa}' # 80% H2 in N2 and 3% H2O
+# Gas compositions at each electrode (partial pressure / 1 atm)
+p_H2_po_value = 0.8     # positrode: 80% H2, 3% H2O, balance He
+p_H2O_po_value = 0.03
+p_H2_ne_value = 0       # negatrode: wet N2 sweep; replaced in step 3b
+p_H2O_ne_value = 0.03
 
 # chemical_reaction - optimized parameters used for val-2l no-Joule validation
 dH_hyd = '${units -1.54415211e+05 J/mol}'
@@ -94,10 +94,6 @@ p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption 
     initial_condition = ${temperature_initial}
   []
   #### Dry auxvariable
-  [pressure_T2_dry]
-  []
-  [pressure_T2O_dry]
-  []
 []
 
 
@@ -109,16 +105,6 @@ p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption 
   []
 
   #### Dry auxkernels
-  [pressure_T2_dry_Aux]
-    type = FunctionAux
-    variable = pressure_T2_dry
-    function = Pressure_T2_dry_function
-  []
-  [pressure_T2O_dry_Aux]
-    type = FunctionAux
-    variable = pressure_T2O_dry
-    function = Pressure_T2O_dry_function
-  []
 
 
 []
@@ -245,13 +231,9 @@ p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption 
     type = ParsedFunction
     expression = '${temperature_initial}'
   []
-  [Pressure_T2_dry_function]
+  [ramp]
     type = ParsedFunction
-    expression = 'min(t / ${ramp_time}, 1.0) * (${pressure_T2_high} * (${length} - x) / ${length} + ${pressure_T2_low}) / ${pressure_atm}'
-  []
-  [Pressure_T2O_dry_function]
-    type = ParsedFunction
-    expression = 'min(t / ${ramp_time}, 1.0) * (${pressure_T2O_constant}) / ${pressure_atm}'
+    expression = 'min(t / ${ramp_time}, 1.0)'
   []
 []
 
@@ -302,13 +284,6 @@ p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption 
     expression = 'kf_hyd / K_hyd'
   []
 
-  [rate_hydration] # T2O + V_O + O -> 2 OT
-    type = ADDerivativeParsedMaterial
-    coupled_variables = 'c_OT pressure_T2O_dry c_V'
-    property_name = 'rate_hydration'
-    material_property_names = 'kf_hyd kb_hyd'
-    expression = '(kf_hyd * pressure_T2O_dry * (3 * ${N} - c_V) * c_V - kb_hyd * c_OT^2)'
-  []
 
   [flux_OT_in] # protons into film: charge transfer + hydration
     type = ADParsedMaterial
@@ -332,12 +307,14 @@ p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption 
     expression = 'rate_CT'
   []
   [flux_V_in] # V_O
+    boundary = 'left right'
     type = ADDerivativeParsedMaterial
     property_name = 'flux_V_in'
     material_property_names = 'rate_hydration'
     expression = '-1 * rate_hydration'
   []
   [flux_H2O_out] # T2O
+    boundary = 'left right'
     type = ADDerivativeParsedMaterial
     property_name = 'flux_H2O_out'
     material_property_names = 'rate_hydration'
@@ -358,13 +335,16 @@ p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption 
     expression = '2 * D_V'
   []
 
+
+
   [rate_CT_po] # H2 + 2 O_O -> 2 OH_O + 2 e'(ed), per proton, at/nm^2/s ; Phi_ed = V_app
     type = ADParsedMaterial
     boundary = left
     property_name = 'rate_CT'
-    coupled_variables = 'c_OT c_V phi_el pressure_T2_dry temperature'
-    expression = '${k_CT} * exp(-${E_CT} / ${R} / temperature) / (1 + sqrt(pressure_T2_dry / ${p_star}))
-                  * ( sqrt(pressure_T2_dry) * (3 * ${N} - c_V)
+    coupled_variables = 'c_OT c_V phi_el temperature'
+    postprocessor_names = 'p_H2_po'
+    expression = '${k_CT} * exp(-${E_CT} / ${R} / temperature) / (1 + sqrt(p_H2_po / ${p_star}))
+                  * ( sqrt(p_H2_po) * (3 * ${N} - c_V)
                       * exp(${beta_a} * ${F} / ${R} / temperature * (${V_current} - phi_el))
                     - c_OT
                       * exp(-(1 - ${beta_a}) * ${F} / ${R} / temperature * (${V_current} - phi_el)) )'
@@ -373,15 +353,32 @@ p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption 
     type = ADParsedMaterial
     boundary = right
     property_name = 'rate_CT'
-    coupled_variables = 'c_OT c_V phi_el pressure_T2_dry temperature'
-    expression = '${k_CT} * exp(-${E_CT} / ${R} / temperature) / (1 + sqrt(pressure_T2_dry / ${p_star}))
-                  * ( sqrt(pressure_T2_dry) * (3 * ${N} - c_V)
+    coupled_variables = 'c_OT c_V phi_el temperature'
+    postprocessor_names = 'p_H2_ne'
+    expression = '${k_CT} * exp(-${E_CT} / ${R} / temperature) / (1 + sqrt(p_H2_ne / ${p_star}))
+                  * ( sqrt(p_H2_ne) * (3 * ${N} - c_V)
                       * exp(${beta_a} * ${F} / ${R} / temperature * (0 - phi_el))
                     - c_OT
                       * exp(-(1 - ${beta_a}) * ${F} / ${R} / temperature * (0 - phi_el)) )'
   []
-
-
+  [rate_hydration_po] # H2O + V_O + O_O -> 2 OH_O, at/nm^2/s
+    type = ADParsedMaterial
+    boundary = left
+    property_name = 'rate_hydration'
+    coupled_variables = 'c_OT c_V'
+    postprocessor_names = 'p_H2O_po'
+    material_property_names = 'kf_hyd kb_hyd'
+    expression = 'kf_hyd * p_H2O_po * (3 * ${N} - c_V) * c_V - kb_hyd * c_OT^2'
+  []
+  [rate_hydration_ne] # H2O + V_O + O_O -> 2 OH_O, at/nm^2/s
+    type = ADParsedMaterial
+    boundary = right
+    property_name = 'rate_hydration'
+    coupled_variables = 'c_OT c_V'
+    postprocessor_names = 'p_H2O_ne'
+    material_property_names = 'kf_hyd kb_hyd'
+    expression = 'kf_hyd * p_H2O_ne * (3 * ${N} - c_V) * c_V - kb_hyd * c_OT^2'
+  []
 []
 
 [Postprocessors]
@@ -462,11 +459,6 @@ p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption 
     expression = ${V_current}
     execute_on = 'INITIAL TIMESTEP_END'
   []
-  [pressure_T2_average]
-    type = ElementAverageValue
-    variable = pressure_T2_dry
-    execute_on = 'INITIAL TIMESTEP_END'
-  []
 
   [r_CT_po]
     type = ADSideAverageMaterialProperty
@@ -536,6 +528,30 @@ p_star = 1.0        # normalized by p_atm; set to 1e10 to switch off adsorption 
   [c_V_inventory]
     type = ElementIntegralVariablePostprocessor
     variable = c_V
+  []
+  [p_H2_po]
+    type = FunctionValuePostprocessor
+    function = ramp
+    scale_factor = ${p_H2_po_value}
+    execute_on = 'INITIAL TIMESTEP_BEGIN'
+  []
+  [p_H2_ne]
+    type = FunctionValuePostprocessor
+    function = ramp
+    scale_factor = ${p_H2_ne_value}
+    execute_on = 'INITIAL TIMESTEP_BEGIN'
+  []
+  [p_H2O_po]
+    type = FunctionValuePostprocessor
+    function = ramp
+    scale_factor = ${p_H2O_po_value}
+    execute_on = 'INITIAL TIMESTEP_BEGIN'
+  []
+  [p_H2O_ne]
+    type = FunctionValuePostprocessor
+    function = ramp
+    scale_factor = ${p_H2O_ne_value}
+    execute_on = 'INITIAL TIMESTEP_BEGIN'
   []
 []
 
