@@ -1,10 +1,19 @@
-# val-2l: BCY20 hydrogen permeation under applied voltage.
-# Unit system: length is converted to nm for the spatial solve, time is s,
-# temperature is K, pressure is Pa, concentrations are atoms/nm^3,
-# and fluxes reported by the membrane model are atoms/nm^2/s.
-
-# 14 optimized parameters used by the val-2l validation runs
-# Polycrystalline, Porous NiO-BCY base assumed having no impact on hydrogen diffusion
+# val-2l (BV version): H2 pumping through a dense BCY20 film (Lee et al., Solid State Ionics 176, 2005)
+#
+# Domain: 1D dense electrolyte, x = 0 (positrode/electrolyte interface) to x = L (negatrode/electrolyte interface)
+#   positrode (x = 0, boundary 'left'):  80% H2, 3% H2O; Phi_ed = V_app; H2 + 2 O_O^x -> 2 OH_O^. + 2 e'
+#   negatrode (x = L, boundary 'right'): wet N2 sweep, 3% H2O; Phi_ed = 0; reverse reaction releases H2
+#
+# Unknowns:
+#   c_OT   [at/nm^3]  proton concentration OH_O^. ("OT" = TMAP8 tritium naming)
+#   c_V    [at/nm^3]  oxygen vacancy concentration V_O^..
+#   phi_el [V]        electrostatic potential of the electrolyte phase
+#   Lattice oxygen O_O^x is not solved; it is 3N - c_V (N = formula units per nm^3).
+#
+# Equations: Nernst-Planck for c_OT (z = 1) and c_V (z = 2), charge continuity div(J_OT + 2 J_V) = 0 for phi_el.
+# Face reactions: Butler-Volmer charge transfer (rate_CT) and hydration H2O + V + O_O^x <-> 2 OH (rate_hydration).
+# Naming: _po/_ne = positrode/negatrode face; mig_k = z_k F D_k c_k / (R T) (migration coefficient, not a conductivity).
+# Units: nm, s, at/nm^3, J/mol, V; gas pressures normalized by 1 atm.
 
 # Physical constants
 R = '${units 8.31446261815324 J/mol/K}' # ideal gas constant based on number used in include/utils/PhysicalConstants.h
